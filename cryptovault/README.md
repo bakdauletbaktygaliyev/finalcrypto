@@ -16,11 +16,11 @@ CryptoVault is a comprehensive cryptographic toolkit implementing:
 - ⛓️ **Blockchain Ledger**: Proof-of-Work + Merkle trees + Immutable audit trail
 
 ### Team Information
-- **Team Members**: [Name 1], [Name 2], [Name 3]
+- **Team Members**: Bakdaulet, Yerdaulet, Zhantore 
 - **Course**: MAT364 - Cryptography
 - **Instructor**: Adil Akhmetov
 - **University**: SDU
-- **Submission Date**: [Date]
+- **Submission Date**: 23 December
 
 ## 🚀 Quick Start
 
@@ -205,20 +205,6 @@ git push origin feature/your-feature
 ## 📝 License
 
 MIT License - see [LICENSE](LICENSE) file
-
-## 👥 Authors
-
-- **[Name 1]** - Authentication & Security Lead
-    - GitHub: [@username1](https://github.com/username1)
-    - Responsibilities: Auth module, security analysis, code review
-
-- **[Name 2]** - Cryptography & Messaging Lead
-    - GitHub: [@username2](https://github.com/username2)
-    - Responsibilities: Messaging, files, core crypto implementations
-
-- **[Name 3]** - Blockchain & Integration Lead
-    - GitHub: [@username3](https://github.com/username3)
-    - Responsibilities: Blockchain, integration, testing, documentation
 
 ## 🙏 Acknowledgments
 
