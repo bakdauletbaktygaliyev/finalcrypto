@@ -47,7 +47,6 @@ func NewCryptoVault(dataDir string) (*CryptoVault, error) {
 func (v *CryptoVault) Register(username, password string) (string, error) {
 	key, err := v.Auth.Register(username, password)
 	if err != nil {
-		// Log failed registration
 		v.Blockchain.AddTransaction("AUTH_REGISTER_FAIL", map[string]interface{}{
 			"user_hash": auth.HashForLogging(username),
 			"timestamp": time.Now().Unix(),
@@ -56,7 +55,6 @@ func (v *CryptoVault) Register(username, password string) (string, error) {
 		return "", err
 	}
 
-	// Log successful registration
 	v.Blockchain.AddTransaction("AUTH_REGISTER", map[string]interface{}{
 		"user_hash": auth.HashForLogging(username),
 		"timestamp": time.Now().Unix(),
@@ -70,7 +68,6 @@ func (v *CryptoVault) Register(username, password string) (string, error) {
 func (v *CryptoVault) Login(username, password, totpCode, ipAddress string) (string, error) {
 	token, err := v.Auth.Login(username, password, totpCode)
 
-	// Log login attempt
 	v.Blockchain.AddTransaction("AUTH_LOGIN", map[string]interface{}{
 		"user_hash": auth.HashForLogging(username),
 		"timestamp": time.Now().Unix(),
@@ -82,7 +79,6 @@ func (v *CryptoVault) Login(username, password, totpCode, ipAddress string) (str
 		return "", err
 	}
 
-	// Initialize messaging for this user
 	msgModule, err := messaging.NewMessagingModule(v.dataDir, username)
 	if err != nil {
 		return "", err
@@ -100,7 +96,6 @@ func (v *CryptoVault) Logout(token string) error {
 		return err
 	}
 
-	// Log logout
 	v.Blockchain.AddTransaction("AUTH_LOGOUT", map[string]interface{}{
 		"user_hash": auth.HashForLogging(session.Username),
 		"timestamp": time.Now().Unix(),
@@ -117,7 +112,6 @@ func (v *CryptoVault) SendMessage(recipient, message string) error {
 
 	err := v.Messaging.SendMessage(recipient, message)
 
-	// Log message send
 	v.Blockchain.AddTransaction("MESSAGE_SEND", map[string]interface{}{
 		"sender_hash":    auth.HashForLogging(v.currentUser),
 		"recipient_hash": auth.HashForLogging(recipient),
@@ -131,7 +125,6 @@ func (v *CryptoVault) SendMessage(recipient, message string) error {
 
 // EncryptFile encrypts file and logs to blockchain
 func (v *CryptoVault) EncryptFile(inputPath, outputPath, password string) error {
-	// Calculate original file hash before encryption
 	originalHash, err := files.CalculateFileHash(inputPath)
 	if err != nil {
 		return err
@@ -139,13 +132,11 @@ func (v *CryptoVault) EncryptFile(inputPath, outputPath, password string) error 
 
 	err = v.Files.EncryptFile(inputPath, outputPath, password)
 
-	// Calculate encrypted file hash
 	var encryptedHash string
 	if err == nil {
 		encryptedHash, _ = files.CalculateFileHash(outputPath)
 	}
 
-	// Log file encryption
 	v.Blockchain.AddTransaction("FILE_ENCRYPT", map[string]interface{}{
 		"file_hash":      originalHash,
 		"user_hash":      auth.HashForLogging(v.currentUser),
@@ -159,7 +150,6 @@ func (v *CryptoVault) EncryptFile(inputPath, outputPath, password string) error 
 
 // DecryptFile decrypts file and logs to blockchain
 func (v *CryptoVault) DecryptFile(inputPath, outputPath, password string) error {
-	// Calculate encrypted file hash
 	encryptedHash, err := files.CalculateFileHash(inputPath)
 	if err != nil {
 		return err
@@ -167,13 +157,11 @@ func (v *CryptoVault) DecryptFile(inputPath, outputPath, password string) error 
 
 	err = v.Files.DecryptFile(inputPath, outputPath, password)
 
-	// Calculate decrypted file hash
 	var decryptedHash string
 	if err == nil {
 		decryptedHash, _ = files.CalculateFileHash(outputPath)
 	}
 
-	// Log file decryption
 	v.Blockchain.AddTransaction("FILE_DECRYPT", map[string]interface{}{
 		"file_hash":      encryptedHash,
 		"user_hash":      auth.HashForLogging(v.currentUser),

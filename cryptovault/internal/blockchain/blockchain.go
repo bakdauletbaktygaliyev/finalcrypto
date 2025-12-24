@@ -48,7 +48,6 @@ func NewBlockchainModule(dataDir string, difficulty int) (*BlockchainModule, err
 		dataDir:    dataDir,
 	}
 
-	// Load existing chain or create genesis block
 	if err := bc.loadChain(); err != nil {
 		bc.createGenesisBlock()
 	}
@@ -79,7 +78,6 @@ func (bc *BlockchainModule) AddTransaction(txType string, data map[string]interf
 	}
 	bc.pending = append(bc.pending, tx)
 
-	// Auto-mine if enough transactions
 	if len(bc.pending) >= 5 {
 		bc.MineBlock()
 	}
@@ -101,10 +99,8 @@ func (bc *BlockchainModule) MineBlock() error {
 		Nonce:        0,
 	}
 
-	// Build Merkle tree
 	newBlock.MerkleRoot = bc.buildMerkleRoot(bc.pending)
 
-	// Proof of Work
 	target := strings.Repeat("0", bc.difficulty)
 	for {
 		newBlock.Hash = bc.calculateHash(newBlock)
@@ -138,7 +134,6 @@ func (bc *BlockchainModule) buildMerkleRoot(txs []Transaction) string {
 		hashes = append(hashes, hex.EncodeToString(hash[:]))
 	}
 
-	// Build tree
 	for len(hashes) > 1 {
 		if len(hashes)%2 != 0 {
 			hashes = append(hashes, hashes[len(hashes)-1])
@@ -176,19 +171,16 @@ func (bc *BlockchainModule) ValidateChain() bool {
 		curr := bc.chain[i]
 		prev := bc.chain[i-1]
 
-		// Verify hash
 		if curr.Hash != bc.calculateHash(curr) {
 			fmt.Printf("Invalid hash at block %d\n", i)
 			return false
 		}
 
-		// Verify previous hash
 		if curr.PrevHash != prev.Hash {
 			fmt.Printf("Invalid previous hash at block %d\n", i)
 			return false
 		}
 
-		// Verify PoW
 		target := strings.Repeat("0", bc.difficulty)
 		if !strings.HasPrefix(curr.Hash, target) {
 			fmt.Printf("Invalid proof of work at block %d\n", i)

@@ -216,8 +216,7 @@ MIT License - see [LICENSE](LICENSE) file
 ## 📧 Contact
 
 For questions or support:
-- Email: your-email@example.com
-- GitHub Issues: [Create an issue](https://github.com/yourusername/cryptovault/issues)
+- Email: 220107108@stu.sdu.edu.kz 
 
 ---
 

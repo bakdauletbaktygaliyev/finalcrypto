@@ -1,4 +1,3 @@
-// internal/auth/auth.go
 package auth
 
 import (
@@ -98,26 +97,21 @@ func (a *AuthModule) GenerateBackupCodes(count int) ([]string, error) {
 
 // Register creates a new user account
 func (a *AuthModule) Register(username, password string) (*otp.Key, error) {
-	// Validate password strength
 	if err := a.ValidatePasswordStrength(password); err != nil {
 		return nil, err
 	}
 
-	// Check if user exists
 	if _, err := a.loadUser(username); err == nil {
 		return nil, errors.New("username already exists")
 	}
 
-	// Generate salt
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, fmt.Errorf("failed to generate salt: %w", err)
 	}
 
-	// Hash password
 	passwordHash := a.HashPassword(password, salt)
 
-	// Generate TOTP secret
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "CryptoVault",
 		AccountName: username,
@@ -126,13 +120,11 @@ func (a *AuthModule) Register(username, password string) (*otp.Key, error) {
 		return nil, fmt.Errorf("failed to generate TOTP secret: %w", err)
 	}
 
-	// Generate backup codes
 	backupCodes, err := a.GenerateBackupCodes(10)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate backup codes: %w", err)
 	}
 
-	// Create user
 	user := &User{
 		Username:       username,
 		PasswordHash:   passwordHash,
@@ -143,7 +135,6 @@ func (a *AuthModule) Register(username, password string) (*otp.Key, error) {
 		FailedAttempts: 0,
 	}
 
-	// Save user
 	if err := a.saveUser(user); err != nil {
 		return nil, err
 	}
@@ -153,18 +144,15 @@ func (a *AuthModule) Register(username, password string) (*otp.Key, error) {
 
 // Login authenticates a user and creates a session
 func (a *AuthModule) Login(username, password, totpCode string) (string, error) {
-	// Load user
 	user, err := a.loadUser(username)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
 
-	// Check if account is locked
 	if time.Now().Before(user.LockedUntil) {
 		return "", fmt.Errorf("account locked until %s", user.LockedUntil.Format(time.RFC3339))
 	}
 
-	// Verify password with constant-time comparison
 	passwordHash := a.HashPassword(password, user.Salt)
 	if subtle.ConstantTimeCompare(passwordHash, user.PasswordHash) != 1 {
 		user.FailedAttempts++
@@ -175,14 +163,11 @@ func (a *AuthModule) Login(username, password, totpCode string) (string, error) 
 		return "", errors.New("invalid credentials")
 	}
 
-	// Verify TOTP
 	valid := totp.Validate(totpCode, user.TOTPSecret)
 	if !valid {
-		// Check backup codes
 		validBackup := false
 		for i, code := range user.BackupCodes {
 			if subtle.ConstantTimeCompare([]byte(code), []byte(totpCode)) == 1 {
-				// Remove used backup code
 				user.BackupCodes = append(user.BackupCodes[:i], user.BackupCodes[i+1:]...)
 				validBackup = true
 				break
@@ -193,19 +178,16 @@ func (a *AuthModule) Login(username, password, totpCode string) (string, error) 
 		}
 	}
 
-	// Reset failed attempts
 	user.FailedAttempts = 0
 	user.LockedUntil = time.Time{}
 	a.saveUser(user)
 
-	// Generate session token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return "", err
 	}
 	token := base64.URLEncoding.EncodeToString(tokenBytes)
 
-	// Create session
 	session := &Session{
 		Token:     token,
 		Username:  username,
@@ -218,7 +200,6 @@ func (a *AuthModule) Login(username, password, totpCode string) (string, error) 
 	return token, nil
 }
 
-// ValidateSession checks if a session token is valid
 func (a *AuthModule) ValidateSession(token string) (*Session, error) {
 	session, ok := a.sessions[token]
 	if !ok {

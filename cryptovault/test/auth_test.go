@@ -23,6 +23,4 @@ func TestAuthModule(t *testing.T) {
 	_, err = authModule.Register("weak", "weak")
 	assert.Error(t, err)
 
-	// Test login (would need TOTP code)
-	// This requires mocking or using a fixed TOTP for testing
 }

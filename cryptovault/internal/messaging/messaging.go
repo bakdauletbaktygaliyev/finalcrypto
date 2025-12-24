@@ -1,4 +1,3 @@
-// internal/messaging/messaging.go (COMPLETE VERSION)
 package messaging
 
 import (
@@ -57,13 +56,11 @@ func NewMessagingModule(dataDir, username string) (*MessagingModule, error) {
 		return nil, fmt.Errorf("failed to create keys directory: %w", err)
 	}
 
-	// Load or generate key pair
 	keyPair, err := loadOrGenerateKeyPair(filepath.Join(keysDir, username+".key"))
 	if err != nil {
 		return nil, err
 	}
 
-	// Save public key
 	pubKeyBytes := elliptic.Marshal(elliptic.P256(), keyPair.PublicKey.X, keyPair.PublicKey.Y)
 	pubKeyPath := filepath.Join(keysDir, username+".pub")
 	if err := os.WriteFile(pubKeyPath, []byte(base64.StdEncoding.EncodeToString(pubKeyBytes)), 0644); err != nil {
@@ -79,7 +76,6 @@ func NewMessagingModule(dataDir, username string) (*MessagingModule, error) {
 
 // loadOrGenerateKeyPair loads existing key pair or generates new one
 func loadOrGenerateKeyPair(keyPath string) (*KeyPair, error) {
-	// Try to load existing key
 	if data, err := os.ReadFile(keyPath); err == nil {
 		var keyData struct {
 			D []byte `json:"d"`
@@ -100,13 +96,11 @@ func loadOrGenerateKeyPair(keyPath string) (*KeyPair, error) {
 		}
 	}
 
-	// Generate new key pair
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, err
 	}
 
-	// Save key pair
 	keyData := struct {
 		D []byte `json:"d"`
 		X []byte `json:"x"`
@@ -134,17 +128,14 @@ func loadOrGenerateKeyPair(keyPath string) (*KeyPair, error) {
 
 // deriveSharedSecret performs ECDH key exchange
 func (m *MessagingModule) deriveSharedSecret(recipientPubKey *ecdsa.PublicKey) ([]byte, []byte, error) {
-	// Generate ephemeral key pair for this message
 	ephemeralPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Perform ECDH
 	x, _ := recipientPubKey.Curve.ScalarMult(recipientPubKey.X, recipientPubKey.Y, ephemeralPriv.D.Bytes())
 	sharedSecret := x.Bytes()
 
-	// Derive encryption key using HKDF
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, nil, err
@@ -156,7 +147,6 @@ func (m *MessagingModule) deriveSharedSecret(recipientPubKey *ecdsa.PublicKey) (
 		return nil, nil, err
 	}
 
-	// Return key and ephemeral public key
 	ephemeralPK := elliptic.Marshal(elliptic.P256(), ephemeralPriv.PublicKey.X, ephemeralPriv.PublicKey.Y)
 
 	return key, ephemeralPK, nil
@@ -164,19 +154,16 @@ func (m *MessagingModule) deriveSharedSecret(recipientPubKey *ecdsa.PublicKey) (
 
 // SendMessage encrypts and sends a message to a recipient
 func (m *MessagingModule) SendMessage(recipientUsername, message string) error {
-	// Load recipient's public key
 	recipientPubKey, err := m.loadPublicKey(recipientUsername)
 	if err != nil {
 		return fmt.Errorf("failed to load recipient public key: %w", err)
 	}
 
-	// Derive shared secret and get ephemeral public key
 	encKey, ephemeralPK, err := m.deriveSharedSecret(recipientPubKey)
 	if err != nil {
 		return err
 	}
 
-	// Encrypt message using AES-256-GCM
 	nonce := make([]byte, 12)
 	if _, err := rand.Read(nonce); err != nil {
 		return err
@@ -194,19 +181,16 @@ func (m *MessagingModule) SendMessage(recipientUsername, message string) error {
 
 	ciphertext := aesGCM.Seal(nil, nonce, []byte(message), nil)
 
-	// Split ciphertext and auth tag
 	authTagSize := aesGCM.Overhead()
 	ct := ciphertext[:len(ciphertext)-authTagSize]
 	authTag := ciphertext[len(ciphertext)-authTagSize:]
 
-	// Sign the message
 	msgHash := sha256.Sum256(ct)
 	signature, err := ecdsa.SignASN1(rand.Reader, m.keyPair.PrivateKey, msgHash[:])
 	if err != nil {
 		return err
 	}
 
-	// Create message object
 	msg := &Message{
 		From:        m.username,
 		To:          recipientUsername,
@@ -218,7 +202,6 @@ func (m *MessagingModule) SendMessage(recipientUsername, message string) error {
 		EphemeralPK: ephemeralPK,
 	}
 
-	// Save message
 	if err := m.saveMessage(msg); err != nil {
 		return err
 	}
@@ -264,36 +247,30 @@ func (m *MessagingModule) ReceiveMessages(fromUser string) ([]*Message, error) {
 
 // DecryptMessage decrypts a received message
 func (m *MessagingModule) DecryptMessage(msg *Message) (string, error) {
-	// Load sender's public key
 	senderPubKey, err := m.loadPublicKey(msg.From)
 	if err != nil {
 		return "", fmt.Errorf("failed to load sender public key: %w", err)
 	}
 
-	// Verify signature
 	msgHash := sha256.Sum256(msg.Ciphertext)
 	if !ecdsa.VerifyASN1(senderPubKey, msgHash[:], msg.Signature) {
 		return "", errors.New("invalid message signature")
 	}
 
-	// Reconstruct shared secret using ephemeral public key
 	x, y := elliptic.Unmarshal(elliptic.P256(), msg.EphemeralPK)
 	if x == nil {
 		return "", errors.New("invalid ephemeral public key")
 	}
 
-	// Perform ECDH with our private key
 	sharedX, _ := elliptic.P256().ScalarMult(x, y, m.keyPair.PrivateKey.D.Bytes())
 	sharedSecret := sharedX.Bytes()
 
-	// Derive same encryption key
 	hkdfReader := hkdf.New(sha256.New, sharedSecret, nil, []byte("CryptoVault-Message-Key"))
 	key := make([]byte, 32)
 	if _, err := hkdfReader.Read(key); err != nil {
 		return "", err
 	}
 
-	// Decrypt message
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -304,7 +281,6 @@ func (m *MessagingModule) DecryptMessage(msg *Message) (string, error) {
 		return "", err
 	}
 
-	// Reconstruct full ciphertext with auth tag
 	fullCiphertext := append(msg.Ciphertext, msg.AuthTag...)
 
 	plaintext, err := aesGCM.Open(nil, msg.Nonce, fullCiphertext, nil)
