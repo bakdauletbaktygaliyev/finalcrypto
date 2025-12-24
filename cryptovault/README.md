@@ -59,9 +59,9 @@ make run-demo
 
 ## 📚 Documentation
 
-- [Architecture Documentation](architecture.md) - System design and components
-- [Security Analysis](security_analysis.md) - Threat model and mitigations
-- [User Guide](user_guide.md) - Usage instructions and examples
+- [Architecture Documentation](./docs/architecture.md) - System design and components
+- [Security Analysis](./docs/security_analysis.md) - Threat model and mitigations
+- [User Guide](./docs/user_guide.md) - Usage instructions and examples
 
 ## 🏗️ Project Structure
 cryptovault/
