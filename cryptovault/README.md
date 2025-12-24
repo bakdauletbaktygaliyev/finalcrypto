@@ -64,6 +64,7 @@ make run-demo
 - [User Guide](./docs/user_guide.md) - Usage instructions and examples
 
 ## 🏗️ Project Structure
+```
 cryptovault/
 ├── cmd/cryptovault/           # CLI commands
 │   ├── main.go               # Entry point
@@ -84,7 +85,7 @@ cryptovault/
 ├── test/                     # Test suite
 ├── docs/                     # Documentation
 └── Makefile                  # Build automation
-
+```
 
 ## ✅ Features Checklist
 

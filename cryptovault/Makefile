@@ -1,4 +1,3 @@
-# Makefile for CryptoVault
 
 .PHONY: all build test clean install run-demo coverage lint
 
